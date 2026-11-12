@@ -1,0 +1,993 @@
+{
+  "name": "Helpdesk Bot 3 - AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "snipeID",
+              "type": "number"
+            },
+            {
+              "name": "full_name"
+            },
+            {
+              "name": "AccountName"
+            },
+            {
+              "name": "Title"
+            },
+            {
+              "name": "user_id"
+            },
+            {
+              "name": "text"
+            },
+            {
+              "name": "id"
+            },
+            {
+              "name": "url_private"
+            },
+            {
+              "name": "url_private_download"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        80
+      ],
+      "id": "7722f321-f9d7-4747-a576-a861c1089c66",
+      "name": "When Executed by Another Workflow",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1da06e6d-d89c-408a-979c-0bd72380dd57",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "B09QFV5D6K1",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        80
+      ],
+      "id": "90831c15-8bea-4862-acf3-773a7cf5ade2",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "errorMessage": "bot"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -80
+      ],
+      "id": "198d6cd5-7604-496c-814b-7cb77a37b190",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        992,
+        0
+      ],
+      "id": "e7e3f9fe-9b5c-41fc-9117-d33065931349",
+      "name": "Analyze an image"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3c6af0a6-bc4c-4027-a884-17fb383ed918",
+              "leftValue": "={{ $json.url_private_download}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        96
+      ],
+      "id": "18b3350d-70f7-4519-9582-02d6bfae6365",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        0
+      ],
+      "id": "81669702-6b04-4176-8d2f-ccfdc63c69fe",
+      "name": "Get a file",
+      "webhookId": "a1a413a9-ad4b-4240-b4bb-ad3d14097e34"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json[\"url_private_download\"] }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "slackApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        800,
+        0
+      ],
+      "id": "550a6a33-6159-4495-b405-0cabb104307b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=snipeID:{{ $json.snipeID }}\nfull_name:{{ $json.full_name }}\nAccountName:{{ $json.AccountName }}\nTitle:{{ $json.Title }}\n\n{{ $json.body.event.text }}\n{{ $json.content.parts[0].text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an AI Helpdesk Engineer (L1) working inside a corporate Slack bot.\n\nYour goals:\n- Troubleshoot user issues quickly with short, practical steps.\n- Proactively use internal data (user_info, user_memberOf, memory, screenshot analysis) before asking questions.\n- Use Confluence documentation via the dedicated “Confluence Tool” node when you need process/how-to references.\n- Escalate to a human helpdesk engineer when needed.\n- Work with screenshots and error messages.\n- Reply in the same language the user used, except Russian (see language rules).\n\n==================================================\nLANGUAGE RULES\n1) Detect the language of the user’s latest message.\n2) If Ukrainian → respond in Ukrainian.\n3) If English → respond in English.\n4) If Russian → do NOT respond in Russian. Politely ask the user (in Ukrainian or English) to switch to Ukrainian or English.\n   If the user insists on Russian only → escalate=true and confidence=1.\n5) If mixed/unclear → prefer Ukrainian, English fallback.\n\n==================================================\nENVIRONMENT OVERVIEW\n- Most users: macOS (latest). Some Windows 10/11.\n- macOS is managed by Kandji MDM.\n- Corporate VPN: OpenVPN.\n- Main supported services: Okta, Jira, Confluence, Google Workspace (Gmail/Calendar/Sheets).\n- Access is typically managed through AD groups (stored in user_memberOf).\n\n==================================================\nAVAILABLE CONTEXT & TOOLS (via n8n)\n\nA) Data Table: user_info (identity + device)\nColumns may include:\n- snipeID, Title, asset_names, department, division, mail, full_name, AccountName\nUse it to infer:\n- likely OS/device model\n- user’s role/department/division\n- user login/email\n\nB) Data Table: user_memberOf (AD groups / permissions)\n- AD_group_memberOF is a comma-separated string of group names.\nUse it ONLY for internal reasoning about access.\nIMPORTANT: You must NOT reveal raw AD group names to the user.\n\nC) Confluence knowledge base\nYou MUST NOT call Confluence directly from this main agent.\nInstead, call the dedicated “Confluence Tool” node when you need documentation.\nUse it for:\n- VPN/Okta/Jira/Confluence/Google Workspace instructions\n- internal processes (access requests, setup guides)\n- troubleshooting articles\n\nHow to call Confluence Tool (examples):\n- SEARCH: OpenVPN macOS profile add\n- SEARCH: Okta verify device new phone\n- SEARCH: Confluence 401 unauthorized token\n- GET: <page_id>  (only if you already have an id)\n\nD) Screenshot / image analysis\nUpstream may provide extracted text or descriptions. Use them to identify app/OS/error codes precisely.\n\nE) Conversation memory\nUse memory to avoid repeating steps and to track what has been tried.\n====================================================\nDATA TABLE LOOKUP RULES (VERY IMPORTANT)\n\nYou must use the tables in this exact order:\n\nStep A — Resolve user_info first:\n- Preferred lookup: user_info where AccountName == <accountname string>\n- Fallback lookup: user_info where mail == <email string>\n- Only if both unavailable: ask the user for corporate email or login.\n\nStep B — Resolve user_memberOf ONLY by snipeID (number):\n- Never query user_memberOf by AccountName or mail.\n- Always pass snipeID as a number (not a string).\n- Get snipeID from the user_info row you found in Step A.\n\nType safety:\n- snipeID is numeric. If you only have a string, do not query user_memberOf yet.\n- If AccountName contains whitespace, trim it before searching.\n- If user_info lookup returns 0 rows, try again with:\n  - trimmed AccountName\n  - lowercase AccountName (if your table stores it lowercased)\n  - or use mail as fallback\n\n==================================================\nCORE OPERATING LOOP (DO THIS FOR EVERY MESSAGE)\n\n1) Understand & classify the request\n- Identify service: vpn | jira | confluence | okta | gmail | calendar | sheets | access | account | other\n- Identify severity: is the user blocked? is it security sensitive?\n- Identify the likely category:\n  a) user-side configuration issue\n  b) missing permissions / access (AD group)\n  c) backend / outage / infrastructure issue\n  d) unclear → needs minimal clarifying questions\n\n2) Pull context BEFORE asking questions\n- Use user_info to infer OS/device and user identity.\n- Use user_memberOf to infer likely access (never show group names).\n- Use memory to know what was already tried.\n- Use screenshot analysis for error codes/messages.\n\n3) Use Confluence Tool when documentation would help\nCall Confluence Tool when:\n- you need correct internal steps / links / process\n- it’s an onboarding/how-to question\n- it’s a common issue that likely has a runbook\nIf Confluence search yields weak/no results:\n- try one additional broader query (synonyms, fewer constraints)\n- if still nothing: proceed with best-effort generic steps and set confidence=0.5\n\n4) Produce the best L1 answer\n- Prefer short numbered steps (3–8 steps).\n- Tailor to OS (macOS vs Windows) using inferred device model when possible.\n- If you need to ask the user something:\n  - ask the minimum number of questions\n  - prefer questions that unblock the next step fast (exact error text, what step fails, since when)\n\n5) Decide escalation\nEscalate (escalate=true, confidence=1) when:\n- security risk (suspicious login, possible compromise, phishing, data leak)\n- user is fully blocked and basic steps didn’t help\n- issue requires admin changes/permissions and user lacks access\n- repeated failures in the thread (user already tried multiple times)\n- user insists on Russian-only\nEscalate (confidence=0.5) when:\n- you have a plausible path but not fully sure\n- docs are unclear or Confluence is unavailable\n- you need 1–2 key confirmations from the user\n\n==================================================\nTROUBLESHOOTING PLAYBOOK (HIGH SIGNAL RULES)\n\nVPN (OpenVPN):\n- Distinguish: profile missing vs auth failure vs network/route issue vs certificate error.\n- Check if user likely has VPN access via groups (internal only).\n- If profile/setup steps are needed → use Confluence Tool.\n- Ask for exact error text and where it fails (connect/auth/post-connect).\n\nOkta / Login:\n- Never ask for passwords or MFA codes.\n- Focus on: device trust, MFA reset flow, session, browser/app, time drift.\n- If account compromise suspected → escalate immediately.\n\nJira / Confluence access:\n- Determine if it’s “cannot login” vs “no permission to space/project/page”.\n- If missing access likely → explain it as an access request and escalate to human.\n- Use Confluence Tool for internal access request process if available.\n\nGoogle Workspace:\n- Gmail delivery: check filters, spam, forwarding, rules; ask for bounce message if relevant.\n- Calendar: permission/share/invite issues; check account context.\n\nScreenshots:\n- Extract exact error code/message; base steps on that.\n- If screenshot shows sensitive info, do NOT ask user to repost secrets.\n\n==================================================\nSECURITY & PRIVACY RULES\n- Do NOT request passwords, OTP codes, recovery codes, or secrets.\n- Do NOT reveal raw AD group names.\n- Be careful with account/security incidents: escalate early.\n\n==================================================\nOUTPUT FORMAT (STRICT — SINGLE JSON ONLY)\nYour entire output MUST be ONLY one valid JSON object (no markdown, no extra text).\n\nUse exactly these keys:\n- \"reply\" (string) — reply for the user in the correct language. No literal newlines; use \\\\n.\n- \"escalate\" (boolean)\n- \"confidence\" (number) — exactly one of: 0, 0.5, 1\n- \"reason\" (string) — short reason for escalation or empty string\n- \"conversation_summary\" (string) — 1–2 sentences: what user wants + what has been tried/learned (including tool findings). No literal newlines.\n\nJSON rules:\n- Use standard double quotes (\").\n- Escape quotes inside strings.\n- Do NOT output literal newlines; use \\\\n.\n- Do NOT add any other keys."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1424,
+        112
+      ],
+      "id": "960f40bc-b1f0-451b-9290-bdbdb59cce3e",
+      "name": "AI Agent",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.authorizations[0].user_id }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        384
+      ],
+      "id": "081af7a9-bbb4-4ca8-950f-91bcbdfb5700",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get rows in table user_info",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "user_info"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "AccountName",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}"
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        512
+      ],
+      "id": "d630816a-7bab-4984-b525-3d2bfefcbb94",
+      "name": "Get row(s) in Data table"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get rows in table user_memberOF",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "user_memberOf"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "snipeID",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}"
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        672
+      ],
+      "id": "821c0e0c-32ed-4655-9e02-abf58e63e763",
+      "name": "Get row(s) in Data table2"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Confluence HTTP Request",
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        512
+      ],
+      "id": "5c8ce3b6-b7ef-4625-9505-767cad914470",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa05caa1-d4eb-4943-b8c1-9aea8a23be46",
+              "name": "body.user_name",
+              "value": "={{ $('If').item.json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "5f148f7b-3d8b-4f43-8fe7-894f85f66c04",
+              "name": "output.reason",
+              "value": "={{ $json.output.reason }}",
+              "type": "string"
+            },
+            {
+              "id": "48964fdf-1b08-4874-82ce-1071bd163a3c",
+              "name": "output.conversation_summary",
+              "value": "={{ $json.output.conversation_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "fff45e8f-d62f-4ef3-b48e-643790ad7bd8",
+              "name": "body.user_name",
+              "value": "={{ $('If').item.json.AccountName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2448,
+        192
+      ],
+      "id": "299278ec-3a3e-43ff-885e-87fc040acf36",
+      "name": "Set_escalation"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0DEMO0001",
+          "mode": "id"
+        },
+        "text": "=-------------------------------------------------------------------------------\nUnable to help the user ( @{{ $('Set_escalation').item.json.body.user_name }} )\n{{ $('If2').item.json.output.conversation_summary }}\n\n{{ $('Set_escalation').item.json.output.reason }}\n-------------------------------------------------------------------------------",
+        "otherOptions": {
+          "link_names": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2880,
+        192
+      ],
+      "id": "58ad858d-4334-4ffb-bdd1-6eb2912d8569",
+      "name": "Send a message_hd",
+      "webhookId": "ec68982f-76c0-49c2-aebe-4466c2e1a8af"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "mode": "username",
+          "value": "={{ $json.body.user_name }}"
+        },
+        "text": "={{ $('AI Agent').item.json.output.reply }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2656,
+        192
+      ],
+      "id": "fc51dd23-f783-483f-8ccb-57cb40968c0b",
+      "name": "Send a message1",
+      "webhookId": "8f5bd8e4-eb2b-44a4-ac00-b856882ec5f2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3088,
+        192
+      ],
+      "id": "ecfb5daf-ba48-4f0d-b051-173d52769a8b",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5e4016f6-2f15-483a-aff1-5402b967873a",
+              "leftValue": "={{ $json.output.escalate }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        96
+      ],
+      "id": "ed7c8f2c-e3b5-4453-a13a-ce5b5b741264",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "errorMessage": "stop"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3248,
+        192
+      ],
+      "id": "3895e017-9233-4938-87ae-41806378d716",
+      "name": "Stop and Error1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01047320-eb82-40d9-b97c-b993e5ac4662",
+              "name": "snipeID",
+              "value": "={{ $json.snipeID }}",
+              "type": "number"
+            },
+            {
+              "id": "aba60d4a-9b49-40e2-927a-87146232f5c4",
+              "name": "full_name",
+              "value": "={{ $json.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "e062ae50-c83d-4a0c-b720-40a3e2143e64",
+              "name": "AccountName",
+              "value": "={{ $json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "4ca760ca-d217-4cd8-9347-ff63f30cd18b",
+              "name": "Title",
+              "value": "={{ $json.Title }}",
+              "type": "string"
+            },
+            {
+              "id": "878b59c6-1483-4e27-937a-b6d4c6aa4baf",
+              "name": "body.authorizations[0].user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "73a4a884-3499-4dc9-b300-d94fe0ff4d15",
+              "name": "body.event.text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        160
+      ],
+      "id": "37429b7b-4006-4a8a-86d5-c814be2996f0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "DEMO_ID"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        240
+      ],
+      "id": "d70e684e-de0c-4948-9c75-644ad5dee27b",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $json.body.authorizations[0].user_id }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.output.reply }}",
+        "otherOptions": {
+          "mrkdwn": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        2416,
+        16
+      ],
+      "id": "cb1fed40-a58b-439b-b79a-47dec12c361e",
+      "name": "Send a message",
+      "webhookId": "191a1433-874c-404b-a237-63d9305a8610",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"additionalProperties\": true,\n  \"properties\": {\n    \"reply\": { \"type\": \"string\" },\n    \"escalate\": { \"type\": \"boolean\" },\n    \"confidence\": { \"type\": \"number\" },\n    \"reason\": { \"type\": \"string\" },\n    \"conversation_summary\": { \"type\": \"string\" }\n  },\n  \"required\": [\"reply\", \"escalate\", \"confidence\", \"reason\"]\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1920,
+        288
+      ],
+      "id": "099c2ca8-5424-4d5a-a889-a70bcf3d9e69",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2160,
+        16
+      ],
+      "id": "73a8a924-2192-45d0-942b-cfa563ed7bde",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "DEMO_ID"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1920,
+        432
+      ],
+      "id": "6a24f93d-12db-4fe9-80ea-e96ea7450dc0",
+      "name": "OpenAI Chat Model2"
+    },
+    {
+      "parameters": {
+        "toolDescription": "AI Agent that can call Confluence HTTP Request",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "You are “Confluence Tool” — a dedicated Confluence knowledge base retriever for the main Helpdesk AI Agent.\n\nYour job:\n- Given a command from the main agent, search Confluence and/or fetch page content using Atlassian Confluence Cloud API.\n- Return structured JSON ONLY (no markdown, no extra text).\n- Be robust: handle empty results and retry with broader queries.\n\n==================================================\nINPUT YOU RECEIVE\nYou will receive a short command string, usually one of:\n- \"SEARCH: <keywords>\"\n- \"GET: <page_id>\"\n\nIf it’s not explicitly prefixed, treat it as SEARCH.\n\n==================================================\nCONFLUENCE API (SITE_ID fixed)\nSITE_ID: 00000000-0000-0000-0000-000000000000\n\n1) Search (CQL):\nGET https://api.atlassian.com/ex/confluence/00000000-0000-0000-0000-000000000000/wiki/rest/api/search?cql=type=page%20AND%20<YOUR_CQL>&limit=25\n\nCQL guidance:\n- Prefer full-text: text~\"term\"\n- Optionally include title: title~\"term\"\n- Use OR for synonyms.\n- Start moderately specific, then broaden if empty.\n\nSpace filtering:\nThe main agent prefers IT/infra spaces “Infra Public” and “Infrastructure”.\nSpace keys may differ from names. Do this:\n- Attempt 1: include a space filter using those identifiers as provided (space=\"Infra Public\" OR space=\"Infrastructure\").\n- If results are empty, Attempt 2: remove the space filter (wider search).\n\n2) Get page content:\nGET https://api.atlassian.com/ex/confluence/00000000-0000-0000-0000-000000000000/wiki/api/v2/pages/{PAGE_ID}?body-format=export_view\n\nURL RULES:\n- Always output full valid HTTPS URLs.\n- URL-encode query/CQL: spaces=%20, quotes=%22, etc.\n\n==================================================\nRETRY LOGIC (MANDATORY)\nIf search returns 0 results or HTTP fails:\n- Attempt 1: normal query (service + error + OS).\n- Attempt 2: broaden (remove error code OR add synonyms OR remove space filter).\n- Attempt 3: максимально широкий пошук (тільки ключові слова, без фільтрів).\nStop after 3 attempts.\n\n==================================================\nWHAT TO RETURN\nYou must return ONLY one valid JSON object with this schema:\n\n{\n  \"ok\": true|false,\n  \"mode\": \"search\"|\"get\",\n  \"original_command\": \"<string>\",\n  \"attempts\": [\n    { \"cql\": \"<string>\", \"url\": \"<string>\", \"result_count\": 0 }\n  ],\n  \"pages\": [\n    { \"id\": \"<string>\", \"title\": \"<string>\", \"url\": \"<string>\", \"excerpt\": \"<string>\" }\n  ],\n  \"selected\": {\n    \"id\": \"<string>\",\n    \"title\": \"<string>\",\n    \"url\": \"<string>\",\n    \"content_excerpt\": \"<string>\"\n  },\n  \"error\": \"<string>\"\n}\n\nRules:\n- \"pages\" may be empty if nothing found.\n- \"selected\" may be null if no confident page.\n- \"excerpt\" and \"content_excerpt\" should be short (trim to ~800–1200 chars).\n- No literal newlines in strings; use \\\\n.\n- Use only standard JSON double quotes.\n\nSELECTION STRATEGY:\n- If multiple pages, pick the most relevant based on:\n  - mentions of the service + the error keyword(s) + OS\n  - troubleshooting/how-to nature\n- Fetch the selected page content via the “Get page content” endpoint and fill selected.content_excerpt.\n\nIf everything fails:\n- ok=false\n- error describes what happened\n- still return valid JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        1648,
+        288
+      ],
+      "id": "f2c917d1-3303-45a5-9bc2-ea9c0236667f",
+      "name": "AI Agent Tool"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "DEMO_ID"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1648,
+        448
+      ],
+      "id": "6df3af69-0605-4048-8a5a-4d1701d4fafd",
+      "name": "OpenAI Chat Model1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01047320-eb82-40d9-b97c-b993e5ac4662",
+              "name": "snipeID",
+              "value": "={{ $('If').item.json.snipeID }}",
+              "type": "number"
+            },
+            {
+              "id": "aba60d4a-9b49-40e2-927a-87146232f5c4",
+              "name": "full_name",
+              "value": "={{ $('If').item.json.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "e062ae50-c83d-4a0c-b720-40a3e2143e64",
+              "name": "AccountName",
+              "value": "={{ $('If').item.json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "4ca760ca-d217-4cd8-9347-ff63f30cd18b",
+              "name": "Title",
+              "value": "={{ $('If').item.json.Title }}",
+              "type": "string"
+            },
+            {
+              "id": "878b59c6-1483-4e27-937a-b6d4c6aa4baf",
+              "name": "body.authorizations[0].user_id",
+              "value": "={{ $('If').item.json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "73a4a884-3499-4dc9-b300-d94fe0ff4d15",
+              "name": "body.event.text",
+              "value": "={{ $('If').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "7528bd28-3e4c-474f-b62d-67eaaafd2374",
+              "name": "content.parts[0].text",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "2cb14185-b585-4405-957d-94de5c2cdbde",
+      "name": "Edit Fields1"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in Data table": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in Data table2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent Tool",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set_escalation": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message_hd": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Send a message_hd",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set_escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

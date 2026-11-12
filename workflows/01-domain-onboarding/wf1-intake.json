@@ -1,0 +1,637 @@
+{
+  "name": "Domain Onboarding 1 - Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c2e7a46c-8274-4fa0-80ff-0771afeeb4af",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "ce31c741-110c-4940-8366-b3470420af00",
+      "name": "Webhook",
+      "webhookId": "d8389ccb-7d2f-4e9b-8e5b-a19da43e0554"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "679b6b74-492d-44fe-8502-b9142ccac3bb",
+              "name": "key",
+              "value": "={{ $json.body.key }}",
+              "type": "string"
+            },
+            {
+              "id": "da812931-f198-493a-ad51-f4765695ce1a",
+              "name": "summary",
+              "value": "={{ $json.body.fields.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "78159c82-09a9-4ddd-8563-b33e2280584a",
+              "name": "description",
+              "value": "={{ $json.body.fields.description }}",
+              "type": "string"
+            },
+            {
+              "id": "ea0d08cd-7aa6-43fb-ab34-776fa380ae8f",
+              "name": "project",
+              "value": "={{ $json.body.fields.customfield_10659[0].value }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ],
+      "id": "a0a1a155-fa71-4749-a439-812424e079c8",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Summary:\n{{$json.summary}}\n\nDescription:\n{{$json.description}}\n"
+            },
+            {
+              "role": "system",
+              "content": "You are a strict domain parser for Jira onboarding tickets.\n\nTask: extract the primary DOMAIN requested for onboarding.\n\nReturn format rules (critical):\n- Output MUST be a single line containing ONLY the domain name (e.g. example.com).\n- No extra words, no JSON, no quotes, no punctuation.\n- Lowercase only.\n\nParsing rules:\n- The input may contain a bare domain, a URL, Jira/Slack-style links, or markup.\n- If it is a URL, strip scheme (http/https), path, query, fragment, port.\n- Remove surrounding characters like < > [ ] ( ) | and trailing slash.\n- Prefer the apex domain (registrable domain) for onboarding.\n- If the domain starts with \"www.\", remove that prefix.\n- Ignore domains that appear only as part of an email address (user@example.com).\n- If multiple candidate domains exist, pick the one most likely requested for onboarding (closest to words like: domain, домен, onboard, cloudflare, ns, namecheap).\n- If you cannot find a domain, output an empty string.\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0,
+          "topP": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a427f4c1-08f3-43d8-a4c5-c365f086aec2",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e0189dca-b9e7-40fb-ba2f-f67569610740",
+              "name": "text",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "4f79ae97-a09e-4e99-871d-3802745b97c3",
+              "name": "key",
+              "value": "={{ $('Edit Fields').item.json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "d063972a-7c4c-451c-8299-e4b387b9108b",
+              "name": "summary",
+              "value": "={{ $('Edit Fields').item.json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "7a27a2fc-1de3-4a96-b873-c431f379f546",
+              "name": "description",
+              "value": "={{ $('Edit Fields').item.json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "9496c733-e60f-431c-961d-44aa7ce1d9c0",
+              "name": "project",
+              "value": "={{ $('Edit Fields').item.json.project }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        992,
+        0
+      ],
+      "id": "ba693b7b-7a2f-46ca-ad2a-0460e49572ca",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "rowExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "domain_onboarding"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "domain_fqdn",
+              "keyValue": "={{ $json.text }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -80
+      ],
+      "id": "464aa583-8498-4d9c-a944-169406c7c058",
+      "name": "If row exists1"
+    },
+    {
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "domain_onboarding"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "domain_fqdn",
+              "keyValue": "={{ $json.text }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        80
+      ],
+      "id": "88348705-94b2-4e9f-9e65-56a23798e242",
+      "name": "If row does not exist"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0DEMO0004",
+          "mode": "id"
+        },
+        "text": "=❗️Onboarding already exists\n\nDomain: {{$json.text}}\nJira: {{$json.key}}\n\nIf you need to restart - close the previous onboarding record or update its status.\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1632,
+        -80
+      ],
+      "id": "42372c6a-efd7-49a1-9ad2-e81a6ee75b73",
+      "name": "Send a message2",
+      "webhookId": "00c71b7f-fbdd-4ddf-9417-8d682588a522"
+    },
+    {
+      "parameters": {
+        "errorMessage": "stop"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        -80
+      ],
+      "id": "55f55ba8-43c1-4985-91e5-af362e91a03d",
+      "name": "Stop and Error2"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "domain_onboarding"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "domain_fqdn": "={{ $json.text }}",
+            "jira_issue_key": "={{ $json.key }}",
+            "request_summary": "={{ $json.summary }}",
+            "request_description": "={{ $json.description }}",
+            "status": "NEW",
+            "onboarding_id": "={{ $json.key + '|' + $json.text }}",
+            "project_code": "={{ $json.project }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "onboarding_id",
+              "displayName": "onboarding_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jira_issue_key",
+              "displayName": "jira_issue_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "request_summary",
+              "displayName": "request_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "request_description",
+              "displayName": "request_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "domain_raw",
+              "displayName": "domain_raw",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "domain_fqdn",
+              "displayName": "domain_fqdn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "project_code",
+              "displayName": "project_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "dm_namecheap_account_ref",
+              "displayName": "dm_namecheap_account_ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "dm_cloudflare_accounts",
+              "displayName": "dm_cloudflare_accounts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cloudflare_account_id_selected",
+              "displayName": "cloudflare_account_id_selected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cloudflare_account_name_selected",
+              "displayName": "cloudflare_account_name_selected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "approval_slack_channel",
+              "displayName": "approval_slack_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "approval_result",
+              "displayName": "approval_result",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "execution_payload",
+              "displayName": "execution_payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "result_summary",
+              "displayName": "result_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        80
+      ],
+      "id": "b4cca2ee-be41-4544-bd99-ee32cb3e1fc2",
+      "name": "Insert row1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "WF2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "onboarding_id": "={{ $json.onboarding_id }}",
+            "domain_fqdn": "={{ $json.domain_fqdn }}",
+            "jira_issue_key": "={{ $json.jira_issue_key }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "onboarding_id",
+              "displayName": "onboarding_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "domain_fqdn",
+              "displayName": "domain_fqdn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "jira_issue_key",
+              "displayName": "jira_issue_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        80
+      ],
+      "id": "462ddc22-c2c6-4d04-bb68-2b9eaab98f49",
+      "name": "Call 'WF2'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4b2beac9-60dc-44e6-b44d-5dab184e1fd5",
+              "name": "onboarding_id",
+              "value": "={{ $json.onboarding_id }}",
+              "type": "string"
+            },
+            {
+              "id": "03b0080e-e4d8-412a-9952-405c11d6af7f",
+              "name": "domain_fqdn",
+              "value": "={{ $json.domain_fqdn }}",
+              "type": "string"
+            },
+            {
+              "id": "0d8ed73d-a4f4-4913-af64-e0732b23e98d",
+              "name": "jira_issue_key",
+              "value": "={{ $json.jira_issue_key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        80
+      ],
+      "id": "f1aa7d0e-414e-4957-a25c-8161ed20dd7f",
+      "name": "Edit Fields2"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "If row does not exist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If row exists1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If row exists1": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message2": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If row does not exist": {
+      "main": [
+        [
+          {
+            "node": "Insert row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Call 'WF2'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

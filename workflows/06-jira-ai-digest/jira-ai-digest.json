@@ -1,0 +1,265 @@
+{
+  "name": "Jira AI Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "079a8d09-682d-4906-9735-46bf80e815b4",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 100,
+        "options": {
+          "jql": "assignee = currentUser() AND status IN (\"0 BACKLOG\", \"1 PLANNED\", \"2 IN PROGRESS\", \"3 ON HOLD\", \"4 EVALUATION\", \"AB closed\", \"AB running\", \"AB success\", \"Acceptance review\", Analysis, \"Application started\", Approval, Approved, \"Approved (migrated)\", \"Approved for pre-check\", Authorize, \"Automatic Payment\", \"Awaiting approval\", \"Awaiting implementation\", BACKLOG, \"Backlog review\", \"Backlog 💬\", \"BD CLARIFICATION\", \"Billing review\", Blocked, \"Business research\", \"Change Due Date\", Compensation, Compliance, Contacted, Convert, \"Data Population\", \"Data Review\", \"Deep Backlog\", Deferred, \"Development started\", Diagnostics, Draft, Employed, Feedback, \"Fetch\", \"Final Interview\", FREE, Hold_, \"HRD Approval\", Implementing, Idea, \"In live testing\", \"IN INTEGRATION\", \"in progress\", \"in progress\", \"In QA\", \"in progress\", \"in progress\", \"in progress\", \"in progress\", \"In Queue\", \"In Research\", \"In Review\", \"In Test on QA\", \"In Test\", \"In Test on STG\", \"In Progress ▶️\", \"in progress\", \"in progress\", Initialization, Integration, Investigation, Invoice, \"L&D Approval\", \"Job Offer\", Iterate, \"Legal Required\", Maintenance, \"Manual Payment\", \"Merchant review\", \"MERGED TO DEVELOP\", \"Need Info\", New, \"New tasks\", \"On Hold\", \"ON HOLD ⛔️\", \"ON TEST\", \"On work\", \"On Production\", Open, \"One-time Payment\", \"Passed QA\", \"Pending (cross-team)\", Pending)"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e16fa4ad-054a-4736-aa7f-aed388e38a15",
+      "name": "Get many issues"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=Ти – розумний асистент‑аналітик задач Jira.\n\nТвоє завдання:\n\nОтримувати на вхід одну змінну text, що містить зведення задач у такому форматі: для кожної задачі перераховані ключ, посилання, назва, опис (може бути порожнім), коментарі (можуть бути відсутні), дата, естімейт і пріоритет.\n\nПроаналізувати цей список та скласти короткий звіт для користувача:\n\nвиокремити задачі з найближчим дедлайном (сьогодні або в найближчі дні), прострочені задачі та задачі з високим пріоритетом;\n\nкоротко описати, що потрібно зробити по кожній із цих задач (використовуючи наявний опис і коментарі);\n\nзвернути увагу на можливі блокери або додаткові кроки (наприклад, уточнення деталей або ескалація);\n\nсформувати пропозиції щодо пріоритезації дій на сьогодні.\n\nЯкщо якогось поля бракує (наприклад, немає опису чи коментарів) або інформації недостатньо для рекомендацій, ти маєш право викликати інструмент jira для пошуку додаткових даних про конкретну задачу (використай ключ задачі та потрібні тобі поля). Викликай цей інструмент лише тоді, коли справді потрібно доповнити дані, і повертайся до користувача із оновленим аналізом.\n\nПиши відповідь українською мовою, структуровано й зрозуміло. Не вигадуй факти та не роби припущень, якщо інформації немає – краще звернись до інструменту jira або поясни, чого бракує.\n\nПам’ятай: твоя мета – допомогти користувачу зрозуміти, які задачі потребують уваги сьогодні, які пріоритетні, і які кроки варто виконати, спираючись на доступні дані з Jira.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "240f8bee-73de-40bf-bd28-e40d9c41bee3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Назви задач, які треба пропускати (summary незмінний)\nconst SKIP_SUMMARIES = new Set([\n  \"Infrastructure\",\n  \"BackOffice\",\n  \"CustomerCare\",\n  \"ProjectA\",\n  \"Wellness\",\n  \"TeamF\",\n  \"Studio A\",\n  \"TEAM-10\",\n  \"Data Engineers\",\n  \"Billing\",\n  \"PROJECTE\",\n]);\n\n// Повертає URL перегляду задачі за посиланням self та ключем\nfunction getBrowseUrl(issue) {\n  const selfUrl = issue?.self || issue?.json?.self;\n  const key = issue?.key || issue?.json?.key;\n  if (!selfUrl || !key) return \"\";\n  const base = selfUrl.split(\"/rest/api/\")[0];\n  return `${base}/browse/${key}`;\n}\n\n// Конвертує Atlassian Document Format (ADF) у plain text\nfunction adfToText(node) {\n  if (!node) return \"\";\n  if (typeof node === \"string\") return node;\n  const out = [];\n  const walk = (n) => {\n    if (!n) return;\n    if (typeof n === \"string\") {\n      out.push(n);\n      return;\n    }\n    if (n.type === \"text\" && typeof n.text === \"string\") {\n      out.push(n.text);\n      return;\n    }\n    // додаємо перенос рядка для деяких блоків\n    if ([\"paragraph\", \"heading\", \"blockquote\", \"listItem\"].includes(n.type)) {\n      if (out.length && out[out.length - 1] !== \"\\n\") out.push(\"\\n\");\n    }\n    if (Array.isArray(n.content)) n.content.forEach(walk);\n    if ([\"paragraph\", \"heading\", \"blockquote\", \"listItem\"].includes(n.type)) {\n      out.push(\"\\n\");\n    }\n  };\n  walk(node);\n  return out.join(\"\").replace(/\\n{3,}/g, \"\\n\\n\").trim();\n}\n\n// Перетворює секунди у години (1 знакове після коми)\nfunction secondsToHuman(seconds) {\n  if (!seconds || typeof seconds !== \"number\") return \"\";\n  const hours = seconds / 3600;\n  const s = (Math.round(hours * 10) / 10).toString();\n  return `${s}h`;\n}\n\n// Отримуємо всі вхідні items\nconst inputItems = $input.all();\nconst issues = inputItems.map((it) => it.json ?? it);\n\nconst parsed = [];\n\nfor (const issue of issues) {\n  const key = issue.key || \"\";\n  const fields = issue.fields || {};\n  const rendered = issue.renderedFields || {};\n\n  const summary = fields.summary || \"\";\n\n  // Пропускаємо задачі зі списку\n  if (SKIP_SUMMARIES.has(summary)) continue;\n\n  // ----- Опис -----\n  let description = \"\";\n  // Якщо є HTML‑опис (renderedFields.description), використовуємо його як plain text\n  if (typeof rendered.description === \"string\" && rendered.description.trim()) {\n    description = rendered.description;\n  }\n  // Інакше беремо fields.description (ADF чи рядок)\n  else if (fields.description) {\n    if (typeof fields.description === \"string\") description = fields.description;\n    else description = adfToText(fields.description);\n  }\n\n  // ----- Коментарі -----\n  let commentsText = \"\";\n  // Основне джерело: fields.comment.comments (масив)\n  let commentsArray = Array.isArray(fields?.comment?.comments)\n    ? fields.comment.comments\n    : null;\n  // fallback: fields.comments (у деяких конфігураціях може бути тут)\n  if (!commentsArray && Array.isArray(fields.comments)) {\n    commentsArray = fields.comments;\n  }\n  if (commentsArray && commentsArray.length) {\n    const formatted = commentsArray.map((c) => {\n      const author =\n        c?.author?.displayName ||\n        c?.updateAuthor?.displayName ||\n        \"Unknown\";\n      const created = c?.created ? ` (${c.created})` : \"\";\n      // body може бути string або ADF\n      let body = \"\";\n      if (typeof c.body === \"string\") body = c.body;\n      else if (c.body) body = adfToText(c.body);\n      return `- ${author}${created}: ${body}`.trim();\n    });\n    commentsText = formatted.join(\"\\n\");\n  }\n\n  // ----- Дата дедлайну -----\n  const dueDate = fields.duedate || \"\";\n\n  // ----- Естімейт -----\n  let estimate = \"\";\n  const estSeconds =\n    fields?.timetracking?.originalEstimateSeconds ??\n    fields?.timeoriginalestimate ??\n    null;\n  if (typeof estSeconds === \"number\") {\n    estimate = secondsToHuman(estSeconds);\n  } else if (fields?.customfield_10016 != null) {\n    // fallback (наприклад, story points)\n    estimate = String(fields.customfield_10016);\n  }\n\n  // ----- Пріоритет -----\n  let priority = \"\";\n  if (fields?.priority) {\n    // fields.priority може бути об'єктом { name: \"High\", id: \"1\", ... }\n    if (typeof fields.priority === \"string\") {\n      priority = fields.priority;\n    } else {\n      priority = fields.priority.name || fields.priority.id || \"\";\n    }\n  } else if (rendered.priority) {\n    // у renderedFields.priority інколи є HTML‑рядок\n    priority =\n      typeof rendered.priority === \"string\"\n        ? rendered.priority\n        : rendered.priority?.name || \"\";\n  }\n\n  parsed.push({\n    key,\n    url: getBrowseUrl(issue),\n    title: summary,\n    description: description || \"\",\n    comments: commentsText || \"\",\n    dueDate,\n    estimate,\n    priority,\n  });\n}\n\n// Збираємо дані у вигляді тексту для AI‑ноди\nconst text = parsed\n  .map((t) => {\n    return [\n      `Ключ задачі: ${t.key}`,\n      `Посилання: ${t.url}`,\n      `Назва: ${t.title}`,\n      `Опис: ${t.description || \"-\"}`,\n      `Коментарі: ${t.comments ? `\\n${t.comments}` : \"-\"}`,\n      `Дата до якого потрібно виконати: ${t.dueDate || \"-\"}`,\n      `Естімейт: ${t.estimate || \"-\"}`,\n      `Пріоритет: ${t.priority || \"-\"}`,\n      `---`,\n    ].join(\"\\n\");\n  })\n  .join(\"\\n\");\n\n// Повертаємо один item із масивом задач, текстом та кількістю\nreturn [\n  {\n    json: {\n      tasks: parsed,\n      text,\n      count: parsed.length,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "23e10569-91f4-472a-831d-1bc2bdc0f681",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "DEMO_ID"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        208
+      ],
+      "id": "7303f4c9-b054-42e5-946a-98daa708ae36",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Issue_Key', ``, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.jiraTool",
+      "typeVersion": 1,
+      "position": [
+        784,
+        208
+      ],
+      "id": "0b35f51f-fa0c-42ca-9147-b9a60151789e",
+      "name": "Get an issue in Jira Software"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// 1) Дістаємо текст з найпоширеніших полів AI-ноди\nfunction pickText(obj) {\n  const candidates = [\n    obj.text,\n    obj.message,\n    obj.answer,\n    obj.result,\n    obj.output,\n    obj.content,\n    obj.analysis,\n  ];\n\n  for (const c of candidates) {\n    if (typeof c === \"string\" && c.trim()) return c;\n  }\n\n  // fallback: часто буває вкладено типу { data: { ... } } або масив\n  // якщо нічого не знайшли — повернемо весь json (щоб хоч щось було)\n  return JSON.stringify(obj, null, 2);\n}\n\nconst rawText = items\n  .map((it) => pickText(it.json ?? it))\n  .filter(Boolean)\n  .join(\"\\n\\n\");\n\n// 2) Нормалізація переносу рядків\nconst normalized = rawText.replace(/\\r\\n/g, \"\\n\").replace(/\\r/g, \"\\n\").trim();\n\n// 3) Масив рядків по \\n + чистка\nconst lines = normalized\n  .split(\"\\n\")\n  .map((l) => l.trimEnd())\n  .filter((l) => l.trim() !== \"\");\n\n// 4) Секції (блоки) — розділення за порожнім рядком\nconst sections = normalized\n  .split(/\\n\\s*\\n/g)\n  .map((s) => s.trim())\n  .filter(Boolean);\n\nreturn [\n  {\n    json: {\n      text: normalized,\n      lines,\n      sections,\n      lineCount: lines.length,\n      sectionCount: sections.length,\n    },\n  },\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "795cb98c-ee4f-4d85-85a3-e3e8005732b3",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "U0DEMO0005",
+          "mode": "list",
+          "cachedResultName": "demo.user"
+        },
+        "text": "=---------------------------------------------------------------------\n{{ $json.output[0].content[0].text }}\n---------------------------------------------------------------------",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1552,
+        0
+      ],
+      "id": "861813ca-d460-4aff-a1e4-54b6e14550a6",
+      "name": "Send a message",
+      "webhookId": "d4abcf90-5664-438e-a0c4-aafbccfedf08"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $json.sections.join(\"\\n\\n\") }}"
+            },
+            {
+              "role": "system",
+              "content": "=Ти - менеджер з форматування текстув\nНормалізуй цей текст. Кожен окремий блок познач емодзі певного типу для швидкого орінтуванню по тексту наприклад критичні моменти познач \"🔴 - червоний кружечок\" якщо це просто рекомендації то трикутником попердеження і т.д \n\nНероби зміни в сам текст, ти тільки займаєшся форматуванням. В результаті не пиши свої репліки. видавай тільки відформатований текст "
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "fc79bf1e-4de6-4d88-a68f-298fa21284f1",
+      "name": "Message a model"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many issues": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get an issue in Jira Software": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

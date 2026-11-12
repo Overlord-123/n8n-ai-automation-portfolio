@@ -1,0 +1,936 @@
+{
+  "name": "Helpdesk Bot 2 - User Context",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "994f0aa4-9901-461c-b3fe-3dd9a5dd1d46",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f21da33-7eae-4cc3-9885-db1590562e09",
+              "name": "AccountName",
+              "value": "={{ $json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "843d0f97-cd78-489c-9b1c-695aa3e3d272",
+              "name": "mail",
+              "value": "={{ $json.mail }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "aef5b209-81b1-41fa-b2bd-3013e8651a96",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://assets.example.com/api/v1/users",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "={{ $json.AccountName }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.mail }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_TOKEN>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        -96
+      ],
+      "id": "f22438a3-941d-428b-a37f-80c717289233",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "baseDN": "=DC=Company,DC=team",
+        "searchFor": "=",
+        "attribute": "=sAMAccountName",
+        "searchText": "={{ $json.AccountName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ldap",
+      "typeVersion": 1,
+      "position": [
+        496,
+        144
+      ],
+      "id": "c3cb18d8-b265-4e0c-b9b9-5f729d7690e5",
+      "name": "LDAP"
+    },
+    {
+      "parameters": {
+        "url": "=https://assets.example.com/api/v1/users/{{ $json.rows[0].id }}/assets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_TOKEN>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "0080d802-96ad-4bf8-988e-b2838e7b3fc6",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb55adba-c25f-4a39-bfc0-d4dc8350fd4c",
+              "name": "snipe_id",
+              "value": "={{ $('HTTP Request').item.json.rows[0].id }}",
+              "type": "number"
+            },
+            {
+              "id": "1b0afeea-03e0-4b78-9639-7c9dd56d83fc",
+              "name": "asset_names",
+              "value": "={{ $input.all().map(i => i.json[\"model.name\"]).join(\", \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        -96
+      ],
+      "id": "ca158035-b745-4f81-9664-a33dd267dbfc",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "rows",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        864,
+        -96
+      ],
+      "id": "3c50d02f-3f7b-4a96-be11-acf6c5f13fe9",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "model.name",
+        "options": {
+          "destinationFieldName": "model.name"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        -96
+      ],
+      "id": "aaad346c-e701-49d5-9d65-bffc996375bf",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        -96
+      ],
+      "id": "22e68edf-6cab-4660-a723-e54a9514b420",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "514333d5-dff0-406d-ab19-c5f46795c21e",
+              "name": "snipe_id",
+              "value": "={{ $json.snipe_id }}",
+              "type": "string"
+            },
+            {
+              "id": "bf6665d2-d8b5-4c6c-872d-4e65f3843d0e",
+              "name": "asset_names",
+              "value": "={{ $json.asset_names }}",
+              "type": "string"
+            },
+            {
+              "id": "882683c9-590e-45d2-84e1-816d39f7f2a3",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "3df532a9-b761-465c-945e-7a1630d5a35f",
+              "name": "cn",
+              "value": "={{ $json.cn }}",
+              "type": "string"
+            },
+            {
+              "id": "82829b93-7897-4d02-94a5-4d14eaeb97ba",
+              "name": "department",
+              "value": "={{ $json.department }}",
+              "type": "string"
+            },
+            {
+              "id": "4a24cb50-7232-42d6-8fa4-1eedb8d43424",
+              "name": "mail",
+              "value": "={{ $json.mail }}",
+              "type": "string"
+            },
+            {
+              "id": "6209820d-063b-43b6-a7ee-5ea0bac36225",
+              "name": "full-name",
+              "value": "={{ $json['full-name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "aa8649ec-a315-41fa-ac2e-b0468546f1fd",
+              "name": "sAMAccountName",
+              "value": "={{ $json.sAMAccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "0e06c0ab-d7ed-4c8f-8389-92d20be261c1",
+              "name": "division",
+              "value": "={{ $json.division }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2048,
+        64
+      ],
+      "id": "2b7f0557-6907-48bd-9052-2861b8bfe525",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "title",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "cn, department, mail, sAMAccountName, division",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        752,
+        64
+      ],
+      "id": "39eb6cb8-f5ba-42fb-bbb9-b8772d3fd876",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "memberOf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        752,
+        208
+      ],
+      "id": "fb4f4059-d33b-4278-bd12-bc258e480033",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7629c953-5a7f-46a4-adc5-532cbe71a011",
+              "name": "memberOf",
+              "value": "={{ $input.all().map(i => i.json[\"memberOf\"]).join(\", \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        208
+      ],
+      "id": "dd450833-16fc-4548-8dfb-e6ed29e273b2",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Збираємо всі CN з усіх input items в один масив\nconst allCn = [];\n\nfor (const item of items) {\n  const memberOf = item.json.memberOf || '';\n\n  // Знаходимо всі фрагменти типу \"CN=....\"\n  const matches = memberOf.match(/CN=[^,]+/g) || [];\n\n  // Додаємо значення CN без \"CN=\" в загальний масив\n  for (const m of matches) {\n    allCn.push(m.replace(/^CN=/, '').trim());\n  }\n}\n\n// Повертаємо ОДИН item\nreturn [\n  {\n    json: {\n      cn: allCn,   // тут усі CN з усіх 125 items\n    },\n  },\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        208
+      ],
+      "id": "b442e653-5dfe-4d10-9bc9-3c71ffd6a131",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2ed1c5d8-0632-4cae-9f45-3e78da67a362",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "692e080e-7672-46d8-8382-3eeacf10890e",
+              "name": "full-name",
+              "value": "={{ $json.cn }}",
+              "type": "string"
+            },
+            {
+              "id": "f1ce8e47-c6ba-457c-ba7b-8dbeab58b71f",
+              "name": "department",
+              "value": "={{ $json.department }}",
+              "type": "string"
+            },
+            {
+              "id": "7a6b7578-c30d-462f-a7a0-5f10274b5d35",
+              "name": "mail",
+              "value": "={{ $json.mail }}",
+              "type": "string"
+            },
+            {
+              "id": "22bf96f4-a2a1-4fe2-9bac-cd04ead4ed93",
+              "name": "sAMAccountName",
+              "value": "={{ $json.sAMAccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "4d3dbc59-b8ce-4dca-bb79-3901fbe05355",
+              "name": "division",
+              "value": "={{ $json.division }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        64
+      ],
+      "id": "6070a01e-c451-4e68-96e9-16d1a875099f",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        208
+      ],
+      "id": "f1acc2cb-8f5e-4a64-be5c-33e550fa92ca",
+      "name": "Limit1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1808,
+        64
+      ],
+      "id": "b0497548-637a-4c04-9bd7-f12873bfaebd",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1488,
+        80
+      ],
+      "id": "8c54f1d2-741f-4caa-bade-24090e74510b",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "user_info"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "snipeID",
+              "keyValue": "={{ $json.snipe_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snipeID": "={{ $json.snipe_id }}",
+            "AccountName": "={{ $json.sAMAccountName }}",
+            "full_name": "={{ $json['full-name'] }}",
+            "mail": "={{ $json.mail }}",
+            "Title": "={{ $json.title }}",
+            "division": "={{ $json.division }}",
+            "department": "={{ $json.department }}",
+            "asset_names": "={{ $json.asset_names }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "snipeID",
+              "displayName": "snipeID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AccountName",
+              "displayName": "AccountName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "mail",
+              "displayName": "mail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "division",
+              "displayName": "division",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "asset_names",
+              "displayName": "asset_names",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2288,
+        64
+      ],
+      "id": "99e06f2b-78e4-4359-a4b0-13940858119d",
+      "name": "Upsert row(s)"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "user_memberOf"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "snipeID",
+              "keyValue": "={{ $('Edit Fields2').item.json.snipe_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snipeID": "={{ $('Edit Fields2').item.json.snipe_id }}",
+            "AD_group_memberOF": "={{ $('Edit Fields2').item.json.cn }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "snipeID",
+              "displayName": "snipeID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AD_group_memberOF",
+              "displayName": "AD_group_memberOF",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2496,
+        64
+      ],
+      "id": "0583af4b-98d7-4dfa-8064-fb5f35a99c55",
+      "name": "Upsert row(s)1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0259ad3f-29eb-4ba3-9715-d428468cd0fe",
+              "name": "snipeID",
+              "value": "={{ $('Upsert row(s)').item.json.snipeID }}",
+              "type": "number"
+            },
+            {
+              "id": "8cb63f9e-7da3-4f29-b197-86f89ff28875",
+              "name": "AccountName",
+              "value": "={{ $('Upsert row(s)').item.json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "b82b40d3-fc3a-4d23-8d71-4ac7e161401a",
+              "name": "mail",
+              "value": "={{ $('Upsert row(s)').item.json.mail }}",
+              "type": "string"
+            },
+            {
+              "id": "211f4e9d-130d-4654-8d08-dbcf36666728",
+              "name": "Title",
+              "value": "={{ $('Upsert row(s)').item.json.Title }}",
+              "type": "string"
+            },
+            {
+              "id": "0d2c8383-da0c-448b-8c8b-a8647bfac383",
+              "name": "asset_names",
+              "value": "={{ $('Upsert row(s)').item.json.asset_names }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2704,
+        64
+      ],
+      "id": "5fc2a8da-07b8-49dd-a003-21820a1a5a7c",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "Executive WF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2912,
+        64
+      ],
+      "id": "07146ce9-5646-4e4b-811f-f6962a13d3b5",
+      "name": "Call 'Executive WF'",
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LDAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LDAP": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert row(s)": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert row(s)1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Call 'Executive WF'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,748 @@
+{
+  "name": "Helpdesk Bot 1 - Slack Entry",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "30cebff1-b6d4-40fa-a5f5-e384f1806184",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d786f40f-a19d-4b55-b689-7dd8817fb398",
+      "name": "Webhook",
+      "webhookId": "56e5f967-aeaf-48ae-8e75-20ed6ac887b1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "529a4cad-73ac-44b7-9905-ddb9d158d45b",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "25e45784-c4f4-4ec3-8689-3f60a9f7ff4f",
+              "leftValue": "={{ $('Get row(s)').item.json.updatedAt }}",
+              "rightValue": "={{ $now.minus({ hours: 24 }) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "afterOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "69dc44e4-8059-4772-8890-6dad47c26a0c",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "=https://slack.com/api/users.info?user={{ $json.body.event.user }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_TOKEN>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "0c89acad-4f1a-45b3-a0c2-e120d2c35cd1",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "675f9603-970a-4147-a5a5-436e08e733d6",
+              "name": "body.authorizations[0].user_id",
+              "value": "={{ $json.user.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c273a669-18a0-42ac-b5d6-3bb24a1b29f0",
+              "name": "AccountName",
+              "value": "={{ $json.user.name }}",
+              "type": "string"
+            },
+            {
+              "id": "068fb33b-2554-44cf-a96f-47b6ffab68c2",
+              "name": "full_name",
+              "value": "={{ $json.user.profile.real_name }}",
+              "type": "string"
+            },
+            {
+              "id": "6cba36a8-8a8f-44c5-bef4-4f742c3346e7",
+              "name": "body.event.text",
+              "value": "={{ $('Webhook').item.json.body.event.text }}",
+              "type": "string"
+            },
+            {
+              "id": "104fe777-f8cf-499d-a5f3-7894d42c6fcb",
+              "name": "body.event.files[0].url_private",
+              "value": "={{ $('Webhook').item.json.body.event.files[0].url_private }}",
+              "type": "string"
+            },
+            {
+              "id": "f89bc771-5bb1-4fc5-931f-0e885b141a10",
+              "name": "body.event.files[0].url_private_download",
+              "value": "={{ $('Webhook').item.json.body.event.files[0].url_private_download }}",
+              "type": "string"
+            },
+            {
+              "id": "4d2ae124-99a0-4672-b32f-f6e6eb4fa30e",
+              "name": "body.event.files[0].id",
+              "value": "={{ $('Webhook').item.json.body.event.files[0].id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        0
+      ],
+      "id": "d1bb93ad-9b1d-4236-890f-fc65c2c93842",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "user_info"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "AccountName",
+              "keyValue": "={{ $json.AccountName }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "32b5171a-20fa-4c6c-9e16-58ecbdf22eeb",
+      "name": "Get row(s)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "134d4faf-d9e4-48db-b149-f715829817d2",
+              "name": "snipeID",
+              "value": "={{ $json.snipeID }}",
+              "type": "number"
+            },
+            {
+              "id": "09c6a747-f1fe-4dbe-982f-56652510f8e8",
+              "name": "full_name",
+              "value": "={{ $json.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "ab316311-4c40-4772-83a9-6f76d70b0788",
+              "name": "AccountName",
+              "value": "={{ $json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "02f2efd2-4bff-44eb-9239-58653a39ff2d",
+              "name": "Title",
+              "value": "={{ $json.Title }}",
+              "type": "string"
+            },
+            {
+              "id": "3fe0cb43-0d20-4901-8bff-8c64524162a0",
+              "name": "body.authorizations[0].user_id",
+              "value": "={{ $json.body.authorizations[0].user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0b6bfa15-4e6f-4511-a077-e67e8546116a",
+              "name": "body.event.text",
+              "value": "={{ $('Edit Fields1').item.json.body.event.text }}",
+              "type": "string"
+            },
+            {
+              "id": "adb2acb9-7a9c-4d46-a47d-46687a8df320",
+              "name": "body.event.files[0].id",
+              "value": "={{ $('Edit Fields1').item.json.body.event.files[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "d1fd05e4-7e7a-435b-a718-a27a23348be4",
+              "name": "body.event.files[0].url_private",
+              "value": "={{ $('Edit Fields1').item.json.body.event.files[0].url_private }}",
+              "type": "string"
+            },
+            {
+              "id": "f2a6b3f1-5d91-4f32-a114-9bac0b76c261",
+              "name": "body.event.files[0].url_private_download",
+              "value": "={{ $('Edit Fields1').item.json.body.event.files[0].url_private_download }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        -144
+      ],
+      "id": "1ebf6092-c55d-42d6-b8f9-fcfa42b47748",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "Update WF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2176,
+        80
+      ],
+      "id": "5e978e5c-de44-49d7-9725-a618e419fc95",
+      "name": "Call 'Update WF'",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "Executive WF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snipeID": "={{ $json.snipeID }}",
+            "full_name": "={{ $json.full_name }}",
+            "AccountName": "={{ $json.AccountName }}",
+            "Title": "={{ $json.Title }}",
+            "user_id": "={{ $json.body.authorizations[0].user_id }}",
+            "text": "={{ $json.body.event.text }}",
+            "id": "={{ $json.body.event.files[0].id }}",
+            "url_private": "={{ $json.body.event.files[0].url_private }}",
+            "url_private_download": "={{ $json.body.event.files[0].url_private_download }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "snipeID",
+              "displayName": "snipeID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "AccountName",
+              "displayName": "AccountName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_private",
+              "displayName": "url_private",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_private_download",
+              "displayName": "url_private_download",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2608,
+        -144
+      ],
+      "id": "7503e2dc-e911-4bdc-b09b-cb83d078cf4f",
+      "name": "Execute Workflow",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5e059c07-e5f6-4c93-a473-173f3114621a",
+              "name": "found",
+              "value": "={{$json.AccountName !== undefined}}",
+              "type": "string"
+            },
+            {
+              "id": "f8b5c7dc-f602-459b-a74d-78e27510f573",
+              "name": "snipeID",
+              "value": "={{ $json.snipeID }}",
+              "type": "number"
+            },
+            {
+              "id": "6015fe90-9a47-45be-9036-c195d119f6a4",
+              "name": "Title",
+              "value": "={{ $json.Title }}",
+              "type": "string"
+            },
+            {
+              "id": "8d34de67-7eb4-4fd2-b53e-e7755dbc722f",
+              "name": "asset_names",
+              "value": "={{ $json.asset_names }}",
+              "type": "string"
+            },
+            {
+              "id": "a2cba164-a3ac-4400-8273-6f6306f40501",
+              "name": "department",
+              "value": "={{ $json.department }}",
+              "type": "string"
+            },
+            {
+              "id": "30ebd86e-5278-4578-9863-10b7a7d33eaf",
+              "name": "mail",
+              "value": "={{ $json.mail }}",
+              "type": "string"
+            },
+            {
+              "id": "262bac43-b344-4765-8806-3fed019eef3b",
+              "name": "full_name",
+              "value": "={{ $json.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "9c4011a0-0150-4ebd-9847-2d958ae44736",
+              "name": "AccountName",
+              "value": "={{ $json.AccountName }}",
+              "type": "string"
+            },
+            {
+              "id": "cba12baf-e022-401d-9b07-3f6725d275dc",
+              "name": "division",
+              "value": "={{ $json.division }}",
+              "type": "string"
+            },
+            {
+              "id": "2d3c1cc0-757f-4b44-a86d-30391d3853cf",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "38e64997-c8d9-43e9-a937-978909b78c44",
+              "name": "body.authorizations[0].user_id",
+              "value": "={{ $('Edit Fields1').item.json.body.authorizations[0].user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c295ae5e-eac2-43c9-adbe-a68db92c7c0b",
+              "name": "body.event.text",
+              "value": "={{ $('Edit Fields1').item.json.body.event.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "cac4c77e-384d-480c-b704-16e56a4b3532",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74e9ba9b-7876-4f8b-b0db-8a26cfe443da",
+              "name": "AccountName",
+              "value": "={{ $('Edit Fields1').item.json.AccountName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        80
+      ],
+      "id": "80301002-8d1a-4d44-93bc-c046fd279d87",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        -144
+      ],
+      "id": "1c9e0687-9501-4a4c-bdf9-46c63e5a31d2",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1952,
+        -144
+      ],
+      "id": "73a6002e-91af-46ad-a03e-5601ead878e8",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "89356dac-f458-47ea-b410-765b11d61698",
+              "leftValue": "={{ $json.user.id }}",
+              "rightValue": "U0DEMO0002",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "68635fdb-0d07-4aec-baa6-d170d77089c2",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        848,
+        -144
+      ],
+      "id": "bffe7930-bb26-4c67-b05c-6b241b68698c",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Call 'Update WF'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

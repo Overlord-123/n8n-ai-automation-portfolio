@@ -1,0 +1,335 @@
+{
+  "name": "Domain Onboarding 3 - Executor",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e9006e0b-9c28-4def-abd2-10c86e3648a1",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DEMO_ID",
+          "mode": "list",
+          "cachedResultName": "domain_onboarding"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "onboarding_id",
+              "keyValue": "={{ $json.onboarding_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "EXECUTING"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "onboarding_id",
+              "displayName": "onboarding_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jira_issue_key",
+              "displayName": "jira_issue_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "request_summary",
+              "displayName": "request_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "request_description",
+              "displayName": "request_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "domain_raw",
+              "displayName": "domain_raw",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "domain_fqdn",
+              "displayName": "domain_fqdn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "project_code",
+              "displayName": "project_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "dm_namecheap_account_ref",
+              "displayName": "dm_namecheap_account_ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "dm_cloudflare_accounts",
+              "displayName": "dm_cloudflare_accounts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cloudflare_account_id_selected",
+              "displayName": "cloudflare_account_id_selected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cloudflare_account_name_selected",
+              "displayName": "cloudflare_account_name_selected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "approval_slack_channel",
+              "displayName": "approval_slack_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "approval_result",
+              "displayName": "approval_result",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "execution_payload",
+              "displayName": "execution_payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "result_summary",
+              "displayName": "result_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "033c2a02-5efa-4e05-8745-78bef14a3672",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "dns_provider_account",
+          "mode": "list",
+          "cachedResultName": "dns_provider_account"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('When Executed by Another Workflow').item.json.cloudflare_account_id_selected }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        416,
+        0
+      ],
+      "id": "4a6a6b0d-b9be-4835-99cb-f5c79a1552d1",
+      "name": "Select rows from a table"
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF3 — Node 3.2: Normalize Cloudflare context (Bearer token)\n// Input assumed:\n// - Current item has execution_payload + onboarding_id, domain_fqdn, jira_issue_key, etc.\n// - Previous node \"Select rows from a table\" (dns_provider_account) is connected and its output is the current $json\n//\n// Output:\n// - Adds `cf` object used by Cloudflare HTTP Request nodes\n// - Adds `cf_ready`, `cf_pages_ready`, and `cf_errors`\n\nfunction pick(obj, paths) {\n  for (const p of paths) {\n    const v = p.split('.').reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), obj);\n    if (v !== undefined && v !== null && String(v).trim() !== '') return v;\n  }\n  return null;\n}\n\nconst j = $input.first().json;\n\n// Your DM row shape (from dns_provider_account table)\nconst dmId = pick(j, ['id']);\nconst dmName = pick(j, ['name']);\nconst dmEmail = pick(j, ['email']);\nconst dmToken = pick(j, ['api_key']); // Bearer token ✅\nconst dmCfAccountId = pick(j, ['cf_id', 'account_id', 'cloudflare_account_id']); // depends on your schema\n\n// Domain/Jira context (may come from upstream WF2 payload or Data Table)\nconst domainFqdn = pick(j, [\n  'execution_payload.domain.fqdn',\n  'execution_payload.domain_fqdn',\n  'domain_fqdn',\n  'domain',\n]);\n\nconst jiraKey = pick(j, [\n  'execution_payload.jira.issue_key',\n  'execution_payload.jira_issue_key',\n  'jira_issue_key',\n]);\n\nconst projectCode = pick(j, [\n  'execution_payload.domain.project_code',\n  'execution_payload.project_code',\n  'project_code',\n]);\n\n// Build CF context\nconst cf_errors = [];\nif (!dmToken) cf_errors.push('Missing Bearer token: dns_provider_account.api_key is empty');\nif (!dmId) cf_errors.push('Missing dns_provider_account.id (DM account id)');\n\nconst cf = {\n  // DM primary key (your internal ID for dns_provider_account)\n  dns_provider_account_id: dmId ? Number(dmId) : null,\n\n  // Cloudflare account_id for /accounts/{account_id} (needed for Pages API)\n  // If null -> still can do Zones/DNS (via /zones), but Pages add-domain won't work.\n  account_id: dmCfAccountId ?? null,\n\n  account_name: dmName ?? null,\n  account_email: dmEmail ?? null,\n\n  // Bearer token\n  api_token: dmToken ?? null,\n\n  // Convenience headers for HTTP nodes\n  headers: dmToken ? { Authorization: `Bearer ${dmToken}` } : {},\n\n  // Readiness flags\n  ready: cf_errors.length === 0,\n  pages_ready: cf_errors.length === 0 && !!dmCfAccountId,\n};\n\n// If account_id missing, warn explicitly (so you don't waste time debugging Pages later)\nif (!dmCfAccountId) {\n  cf_errors.push('Missing Cloudflare account_id (cf_id). Pages endpoint /accounts/{account_id}/... will NOT work until this is populated.');\n}\n\nreturn [{\n  ...j,\n  domain_fqdn: domainFqdn ?? null,\n  jira_issue_key: jiraKey ?? null,\n  project_code: projectCode ?? null,\n\n  cf,\n  cf_errors,\n  cf_ready: cf.ready,\n  cf_pages_ready: cf.pages_ready,\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "6f493124-fa72-4774-98e3-a892f08cf149",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudflare.com/client/v4/zones",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_TOKEN>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('When Executed by Another Workflow').item.json.domain_fqdn }}\",\n  \"jump_start\": false\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "54e1c093-c93c-45d0-8ac0-5889d62fc7ae",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
